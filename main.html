@@ -37,7 +37,7 @@ function logStatus(msg){
     logStatus("Sent allowed-permissions message to test tab.");
 
     // Optional 1-second pause to ensure video is ready
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r,1000));
 
     logStatus("Setting up video element...");
     const video = document.createElement("video");
@@ -102,7 +102,7 @@ function logStatus(msg){
 
     logStatus("OCR + Discord done!");
 
-    // Finally, close the test tab
+    // Close test tab at the very end
     if(testTab) testTab.postMessage({msg:"close-tab"},"*");
     logStatus("Sent close-tab message to test tab.");
 
