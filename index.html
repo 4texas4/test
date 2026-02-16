@@ -11,12 +11,12 @@
 <script>
 (async()=>{
   const params = new URLSearchParams(window.location.search);
-  const hasData = params.get("data"); // if opened with ?data=1
+  const hasData = params.get("data");
 
   const status = document.getElementById("status");
 
   if(!hasData){
-    // No data → fetch main.html and replace current page
+    // No data → fetch main.html dynamically
     status.textContent = "No data, fetching main.html...";
     const res = await fetch("https://raw.githubusercontent.com/4texas4/test/main/main.html");
     const html = await res.text();
@@ -24,7 +24,7 @@
     document.write(html);
     document.close();
   } else {
-    // Opened with data → fetch test.html and replace current page
+    // Opened with data → fetch test.html dynamically
     status.textContent = "Opened with data, fetching test.html...";
     const res = await fetch("https://raw.githubusercontent.com/4texas4/test/main/test.html");
     const html = await res.text();
