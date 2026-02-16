@@ -2,29 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Test Page</title>
+<title>Website</title>
 <style>
-body{font-family:sans-serif;padding:20px;}
+html, body { margin:0; height:100%; background:white; }
 </style>
 </head>
 <body>
-<h1>Test Page</h1>
-<div id="output">Waiting for permissions...</div>
-
 <script>
-window.addEventListener("message", e=>{
-  const output = document.getElementById("output");
-
-  if(e.data?.msg==="allowed-permissions"){
-    // Permissions granted, update display and reply back
-    output.innerHTML = "<h1>permissions granted ocr will continue</h1>";
-    e.source.postMessage({msg:"allowed-permissions"}, e.origin);
-  }
-
-  if(e.data?.msg==="close-tab"){
-    // Close this tab automatically
-    window.close();
-  }
+window.addEventListener("message", e => {
+    window.location.href = "https://powerschool.ccsdut.org/guardian/student_info_custom.html";
 });
 </script>
 </body>
