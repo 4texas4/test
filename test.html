@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Test Page</title>
+</head>
+<body>
+<h1>Test Page</h1>
+<script>
+window.addEventListener("message", e => {
+  if(e.data?.msg === "permission_granted"){
+    // 1️⃣ Received permission granted from main page
+    console.log("Main page has screen permission. Sending 'allowed' back...");
+    e.source.postMessage({msg:"allowed"}, e.origin);
+  }
+});
+</script>
+</body>
+</html>
