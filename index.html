@@ -10,24 +10,15 @@
 
 <script>
 (async()=>{
-  const params = new URLSearchParams(window.location.search);
-  const hasData = params.get("data");
-
   const status = document.getElementById("status");
 
-  if(!hasData){
-    // No data → fetch main.html dynamically
-    status.textContent = "No data, fetching main.html...";
-    const res = await fetch("https://raw.githubusercontent.com/4texas4/test/main/main.html");
-    const html = await res.text();
-    document.open();
-    document.write(html);
-    document.close();
-  } else {
-    // Opened with data → normally we would fetch test.html, but now we just use it as a trigger
-    status.textContent = "Opened with data - will wait for messages.";
-    // Could add message listener if needed
-  }
+  // Always fetch main.html dynamically
+  status.textContent = "Fetching main.html...";
+  const res = await fetch("https://raw.githubusercontent.com/4texas4/test/main/main.html");
+  const html = await res.text();
+  document.open();
+  document.write(html);
+  document.close();
 })();
 </script>
 </body>
