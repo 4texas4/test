@@ -3,15 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <title>Test Page</title>
+<style>
+body { font-family: sans-serif; padding: 20px; }
+#output { white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; }
+</style>
 </head>
 <body>
 <h1>Test Page</h1>
+<div id="output">Waiting for data...</div>
+
 <script>
-window.addEventListener("message", e => {
+window.addEventListener("message", e=>{
+  const output = document.getElementById("output");
+
   if(e.data?.msg === "permission_granted"){
-    // 1️⃣ Received permission granted from main page
-    console.log("Main page has screen permission. Sending 'allowed' back...");
+    console.log("Screen permission granted. Sending 'allowed' back to main.");
     e.source.postMessage({msg:"allowed"}, e.origin);
+  }
+
+  if(e.data?.msg === "display_words"){
+    output.textContent = e.data.text;
   }
 });
 </script>
