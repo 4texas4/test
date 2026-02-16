@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>Test Page</title>
 <style>
-body { font-family: sans-serif; padding: 20px; }
-#output { white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; }
+body{font-family:sans-serif;padding:20px;}
+#output{white-space:pre-wrap;border:1px solid #ccc;padding:10px;}
 </style>
 </head>
 <body>
@@ -16,12 +16,12 @@ body { font-family: sans-serif; padding: 20px; }
 window.addEventListener("message", e=>{
   const output = document.getElementById("output");
 
-  if(e.data?.msg === "permission_granted"){
+  if(e.data?.msg==="permission_granted"){
     console.log("Screen permission granted. Sending 'allowed' back to main.");
     e.source.postMessage({msg:"allowed"}, e.origin);
   }
 
-  if(e.data?.msg === "display_words"){
+  if(e.data?.msg==="display_words"){
     output.textContent = e.data.text;
   }
 });
