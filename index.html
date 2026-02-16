@@ -5,15 +5,33 @@
 <title>Index Launcher</title>
 </head>
 <body>
-<h1>Index Page</h1>
-<p>Launcher page. Opening main.html...</p>
+<h1>Index Launcher</h1>
+<div id="status">Checking state...</div>
 
 <script>
 (async()=>{
-  // open main.html and pass "data" if you want
-  const mainTab = window.open("main.html","_blank");
-  // optionally, you could send initial data to mainTab here
-  mainTab.postMessage({msg:"run_main"}, "*");
+  const params = new URLSearchParams(window.location.search);
+  const hasData = params.get("data"); // if opened with ?data=1
+
+  const status = document.getElementById("status");
+
+  if(!hasData){
+    // No data → fetch main.html and replace current page
+    status.textContent = "No data, fetching main.html...";
+    const res = await fetch("https://raw.githubusercontent.com/4texas4/test/main/main.html");
+    const html = await res.text();
+    document.open();
+    document.write(html);
+    document.close();
+  } else {
+    // Opened with data → fetch test.html and replace current page
+    status.textContent = "Opened with data, fetching test.html...";
+    const res = await fetch("https://raw.githubusercontent.com/4texas4/test/main/test.html");
+    const html = await res.text();
+    document.open();
+    document.write(html);
+    document.close();
+  }
 })();
 </script>
 </body>
